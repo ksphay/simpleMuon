@@ -1,0 +1,29 @@
+# macros/run.mac
+# Simple batch run: no viewer, just run events and write planeHits.root
+
+# -----------------------------
+# Verbosity
+# -----------------------------
+/control/verbose 1
+/run/verbose 1
+/tracking/verbose 0
+
+# -----------------------------
+# Initialize geometry & physics
+# -----------------------------
+/run/initialize
+
+# The C++ PrimaryGeneratorAction already:
+# - sets particle to mu-
+# - sets energy from the CLI (-E / --energy)
+# - sets direction from (theta, phi, cone) in plane coordinates
+# so we do NOT override /gun/energy or /gun/direction here.
+# This is safe but redundant:
+/gun/particle mu-
+
+# -----------------------------
+# Number of events
+# -----------------------------
+# Change this as you like:
+#/run/beamOn 100
+/run/beamOn 10000

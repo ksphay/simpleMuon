@@ -1,0 +1,33 @@
+# Verbosities
+/control/verbose 1
+/run/verbose 1
+/tracking/verbose 0
+
+# Init geometry + physics
+/run/initialize
+
+# Store trajectories
+/tracking/storeTrajectory 1
+
+# Open OpenGL viewer
+/vis/open OGL 800x800-0+0
+
+# Build scene
+/vis/scene/create myScene
+/vis/scene/add/volume
+/vis/scene/add/axes 0 0 0 1 m
+/vis/scene/add/trajectories smooth
+/vis/sceneHandler/attach myScene
+
+# Correct background command:
+/vis/viewer/set/background 1 1 1
+/vis/viewer/set/style surface
+/vis/viewer/set/target 0 0 0
+/vis/viewer/set/viewpointThetaPhi 70 40
+/vis/viewer/zoom 1.2
+/vis/viewer/update
+
+# Gun: particle only; energy/pos/dir are from C++ via CLI
+/gun/particle mu-
+
+/run/beamOn 100
