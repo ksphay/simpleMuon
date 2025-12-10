@@ -1,3 +1,4 @@
+// ActionInitialization.hh
 #ifndef ACTION_INITIALIZATION_HH
 #define ACTION_INITIALIZATION_HH
 
@@ -12,11 +13,11 @@ public:
                          G4double phiDeg,
                          G4double sourceRadius,
                          G4double coneHalfAngleDeg,
-                         G4double hitPlaneHalfSize);
+                         G4double planeXY_m);
     ~ActionInitialization() override = default;
 
-    void BuildForMaster() const override;
     void Build() const override;
+    void BuildForMaster() const override {}  // nothing special for master
 
 private:
     G4double fEnergyGeV;
@@ -24,7 +25,7 @@ private:
     G4double fPhiDeg;
     G4double fSourceRadius;
     G4double fConeHalfAngleDeg;
-    G4double fHitPlaneHalfSize;
+    G4double fPlaneXY_m;   // full side length (m) of offset square on plane
 };
 
 #endif

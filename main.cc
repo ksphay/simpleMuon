@@ -1,3 +1,4 @@
+// main.cc
 #include "DetectorConstruction.hh"
 #include "ActionInitialization.hh"
 
@@ -26,8 +27,8 @@ int main(int argc, char** argv)
     // ----------------------------------------
     // CLI parameters and defaults
     // ----------------------------------------
-    G4String macroFile = "";       // empty => interactive + vis_muon.mac
-    G4double muonEnergyGeV    = 1.0;   // default energy [GeV]
+    G4String macroFile = "";        // empty => interactive + vis.mac
+    G4double muonEnergyGeV = 1.0;   // default energy [GeV]
 
     // World extents in meters (user-specified)
     G4double xm_m = -1.0;
@@ -37,14 +38,28 @@ int main(int argc, char** argv)
     G4double zm_m = -1.0;
     G4double zp_m =  1.0;
 
-    // Source spherical params (deg, m)
+    // Source spherical params (deg, m) for the central axis
     G4double thetaDeg = 180.0;  // zenith
-    G4double phiDeg   = 0.0;    // azimuth
+    G4double phiDeg   = 0.0;    // azimuth (for beam axis if used)
     G4double r_m      = -1.0;   // radius (m); <0 => auto
-    G4double hitPlaneHalfSize_m = 0.0; // half-size (m) for hit point shift in +/-X,Y
 
-    // NEW: cone half-angle (deg), 0 => pencil beam
+    // Cone half-angle (deg), 0 => pencil beam
     G4double coneHalfAngleDeg = 0.0;
+
+    // Full side length (meters) of the square where hits are distributed
+    // in the plane coordinates (offset region).
+    G4double planeXY_m = 0.0;   // 0 => no transverse offset
+
+    // NEW: detection plane full side length (meters); 0 => auto (20% of world)
+    G4double detXY_m = 0.0;
+
+    // DEM / terrain parameters
+    G4String demPath          = "";
+    G4double colDX_m          = 0.0;   // full size of each column in X
+    G4double colDY_m          = 0.0;   // full size of each column in Y
+    G4double colDZ_m          = 0.0;   // extension below z=0 (bottom = -cdz)
+    G4double terrainPhiDeg    = 0.0;   // rotation of DEM (x,y) around +Z
+    G4double rockDensity_g_cm3 = 2.65; // default rock density
 
     // ----------------------------------------
     // Parse arguments
@@ -52,9 +67,11 @@ int main(int argc, char** argv)
     for (int i = 1; i < argc; ++i) {
         G4String arg = argv[i];
 
+        // Energy
         if ((arg == "-E" || arg == "--energy") && (i + 1) < argc) {
             muonEnergyGeV = std::atof(argv[++i]);
         }
+        // World extents
         else if ((arg == "--xm" || arg == "-xm") && (i + 1) < argc) {
             xm_m = std::atof(argv[++i]);
         }
@@ -73,34 +90,57 @@ int main(int argc, char** argv)
         else if ((arg == "--zp" || arg == "-zp") && (i + 1) < argc) {
             zp_m = std::atof(argv[++i]);
         }
+        // Axis angles
         else if ((arg == "--theta" || arg == "-th") && (i + 1) < argc) {
             thetaDeg = std::atof(argv[++i]);
         }
         else if ((arg == "--phi" || arg == "-ph") && (i + 1) < argc) {
             phiDeg = std::atof(argv[++i]);
         }
+        // Source radius (m)
         else if (arg == "--r" && (i + 1) < argc) {
             r_m = std::atof(argv[++i]);
         }
+        // Cone half-angle (deg)
         else if ((arg == "--cone" || arg == "-cone") && (i + 1) < argc) {
             coneHalfAngleDeg = std::atof(argv[++i]);
         }
-        else if (arg.rfind("--hit=", 0) == 0) {
-            hitPlaneHalfSize_m = std::atof(arg.substr(6).c_str());
+        // Offset region in plane coordinates (full side length in meters)
+        else if ((arg == "--planeXY" || arg == "-pxy") && (i + 1) < argc) {
+            planeXY_m = std::atof(argv[++i]);
         }
-        else if (arg == "--hit" || arg == "-hit") {
-            if ((i + 1) < argc) {
-                hitPlaneHalfSize_m = std::atof(argv[++i]);
-            } else {
-                G4cout << "[main] WARNING: --hit expects a half-size in meters;"
-                       << " using 0." << G4endl;
-            }
+        // NEW: detection plane full side length (meters)
+        else if ((arg == "--detXY" || arg == "-dxy") && (i + 1) < argc) {
+            detXY_m = std::atof(argv[++i]);
         }
+        // DEM path
+        else if ((arg == "--DEMpath" || arg == "-dem") && (i + 1) < argc) {
+            demPath = argv[++i];
+        }
+        // DEM column sizes and extension (meters)
+        else if (arg == "--cdx" && (i + 1) < argc) {
+            colDX_m = std::atof(argv[++i]);
+        }
+        else if (arg == "--cdy" && (i + 1) < argc) {
+            colDY_m = std::atof(argv[++i]);
+        }
+        else if (arg == "--cdz" && (i + 1) < argc) {
+            colDZ_m = std::atof(argv[++i]);
+        }
+        // DEM rotation around Z (degrees)
+        else if ((arg == "--demPhi" || arg == "--terrainPhi") && (i + 1) < argc) {
+            terrainPhiDeg = std::atof(argv[++i]);
+        }
+        // Rock density in g/cm^3
+        else if ((arg == "--density" || arg == "-rho") && (i + 1) < argc) {
+            rockDensity_g_cm3 = std::atof(argv[++i]);
+        }
+        // Macro file
         else if ((arg == "-m" || arg == "--macro") && (i + 1) < argc) {
             macroFile = argv[++i];
         }
+        // Positional argument: try macro (.mac) or energy
         else if (arg[0] != '-') {
-            // Positional argument: try macro if ends with .mac, else energy
             if (macroFile.empty() &&
                 arg.size() >= 4 &&
                 arg.substr(arg.size() - 4) == ".mac")
@@ -172,6 +212,10 @@ int main(int argc, char** argv)
     }
     G4double rSource = r_m * m;
 
+    // Compute half-length for plane offset region (for logging only;
+    // the actual handling is in PrimaryGeneratorAction).
+    G4double hitHalfXY = 0.5 * planeXY_m * m;
+
     // ----------------------------------------
     // Echo configuration
     // ----------------------------------------
@@ -185,7 +229,22 @@ int main(int argc, char** argv)
     G4cout << "[main] Source: r=" << r_m << " m, "
            << "theta=" << thetaDeg << " deg, phi=" << phiDeg << " deg" << G4endl;
     G4cout << "[main] Cone half-angle (deg): " << coneHalfAngleDeg << G4endl;
-    G4cout << "[main] Hit plane half-size (m): " << hitPlaneHalfSize_m << G4endl;
+    G4cout << "[main] Plane offset full length (m): " << planeXY_m
+           << " (half-length = " << hitHalfXY / m << " m)" << G4endl;
+    G4cout << "[main] Detection plane full side (m): " << detXY_m
+           << " (0 => auto 20% of world)" << G4endl;
+
+    if (!demPath.empty()) {
+        G4cout << "[main] DEM path: " << demPath << G4endl;
+        G4cout << "[main] DEM columns DX=" << colDX_m
+               << " m, DY=" << colDY_m
+               << " m, extend below z=0 by " << colDZ_m << " m"
+               << ", DEM phi=" << terrainPhiDeg << " deg"
+               << ", rock density=" << rockDensity_g_cm3 << " g/cm^3"
+               << G4endl;
+    } else {
+        G4cout << "[main] No DEM terrain requested." << G4endl;
+    }
 
     // ----------------------------------------
     // Interactive vs batch
@@ -210,7 +269,17 @@ int main(int argc, char** argv)
     // Initialization: geometry, physics, actions
     // ----------------------------------------
     runManager->SetUserInitialization(
-        new DetectorConstruction(halfX, halfY, halfZ, thetaDeg, phiDeg)
+        new DetectorConstruction(halfX,
+                                 halfY,
+                                 halfZ,
+                                 thetaDeg,
+                                 detXY_m,
+                                 demPath,
+                                 colDX_m,
+                                 colDY_m,
+                                 colDZ_m,
+                                 terrainPhiDeg,
+                                 rockDensity_g_cm3)
     );
 
     runManager->SetUserInitialization(new FTFP_BERT());
@@ -221,7 +290,7 @@ int main(int argc, char** argv)
                                  phiDeg,
                                  rSource,
                                  coneHalfAngleDeg,
-                                 hitPlaneHalfSize_m * m)
+                                 planeXY_m)
     );
 
     // Visualization manager

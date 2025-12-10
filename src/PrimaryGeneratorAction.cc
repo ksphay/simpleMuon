@@ -1,10 +1,13 @@
+// PrimaryGeneratorAction.cc
 #include "PrimaryGeneratorAction.hh"
+#include "DetectorConstruction.hh"
 
 #include "G4ParticleGun.hh"
 #include "G4ParticleTable.hh"
 #include "G4ParticleDefinition.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4ThreeVector.hh"
+#include "G4RunManager.hh"
 #include "Randomize.hh"
 #include "CLHEP/Units/SystemOfUnits.h"
 
@@ -15,7 +18,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4double energyGeV,
                                                G4double phiDeg,
                                                G4double sourceRadius,
                                                G4double coneHalfAngleDeg,
-                                               G4double hitPlaneHalfSize)
+                                               G4double planeXY_m)
 : G4VUserPrimaryGeneratorAction(),
   fGun(nullptr),
   fEnergyGeV(energyGeV),
@@ -23,15 +26,21 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4double energyGeV,
   fPhiDeg(phiDeg),
   fSourceRadius(sourceRadius),
   fConeHalfAngleDeg(coneHalfAngleDeg),
-  fHitPlaneHalfSize(hitPlaneHalfSize)
+  fPlaneHalfXY(0.0)
 {
     // One-particle gun
     fGun = new G4ParticleGun(1);
 
-    // Default particle: mu-
     auto* particleTable = G4ParticleTable::GetParticleTable();
     auto* muMinus       = particleTable->FindParticle("mu-");
     fGun->SetParticleDefinition(muMinus);
+
+    // Store plane half-length in internal units
+    if (planeXY_m > 0.0) {
+        fPlaneHalfXY = 0.5 * planeXY_m * m;
+    } else {
+        fPlaneHalfXY = 0.0;
+    }
 
     G4cout << "PrimaryGeneratorAction: generating mu- with E = "
            << fEnergyGeV << " GeV, "
@@ -39,9 +48,11 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4double energyGeV,
            << "phi = "   << fPhiDeg   << " deg, "
            << "source radius = " << fSourceRadius / m << " m, "
            << "cone half-angle = " << fConeHalfAngleDeg << " deg, "
-           << "hit plane half-size = " << fHitPlaneHalfSize / m << " m."
+           << "planeXY full = " << planeXY_m << " m (half = "
+           << fPlaneHalfXY / m << " m)"
            << G4endl;
-    // Set default energy; direction/position per-event
+
+    // Default energy; direction/position per-event
     fGun->SetParticleEnergy(fEnergyGeV * GeV);
 
     // Dummy defaults (overwritten in GeneratePrimaries)
@@ -54,9 +65,9 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction()
     delete fGun;
 }
 
-// Sample a direction in a cone centered at ORIGIN,
-// axis given in WORLD coordinates (axisWorld),
-// with half-angle fConeHalfAngleDeg, uniform in solid angle.
+// -----------------------------------------------------------------------------
+// SampleDirectionInCone
+// -----------------------------------------------------------------------------
 G4ThreeVector PrimaryGeneratorAction::SampleDirectionInCone(const G4ThreeVector& axisWorld) const
 {
     G4ThreeVector axis = axisWorld;
@@ -65,7 +76,7 @@ G4ThreeVector PrimaryGeneratorAction::SampleDirectionInCone(const G4ThreeVector&
     }
     axis = axis.unit();
 
-    // Pencil beam: just return axis
+    // Pencil beam
     if (fConeHalfAngleDeg <= 0.0) {
         return axis;
     }
@@ -73,8 +84,7 @@ G4ThreeVector PrimaryGeneratorAction::SampleDirectionInCone(const G4ThreeVector&
     G4double alpha  = fConeHalfAngleDeg * deg;
     G4double cosMax = std::cos(alpha);
 
-    // Uniform in cos(theta') between cosMax and 1:
-    //   cosθ' = 1 - u*(1 - cosMax), u ~ U[0,1)
+    // Uniform in cos(theta') between cosMax and 1
     G4double u      = G4UniformRand();
     G4double cosThP = 1.0 - u * (1.0 - cosMax);
     if (cosThP >  1.0)    cosThP = 1.0;
@@ -87,7 +97,7 @@ G4ThreeVector PrimaryGeneratorAction::SampleDirectionInCone(const G4ThreeVector&
     G4double cphP = std::cos(phiP);
     G4double sphP = std::sin(phiP);
 
-    // Build an orthonormal basis (u1, u2, axis)
+    // Build orthonormal basis (u1, u2, axis)
     G4ThreeVector tmp(0., 0., 1.);
     if (std::fabs(axis.dot(tmp)) > 0.9) {
         tmp = G4ThreeVector(1., 0., 0.);
@@ -113,56 +123,50 @@ G4ThreeVector PrimaryGeneratorAction::SampleDirectionInCone(const G4ThreeVector&
     return dir.unit();
 }
 
+// -----------------------------------------------------------------------------
+// GeneratePrimaries
+// -----------------------------------------------------------------------------
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
 {
-    // 1) Central cone axis in WORLD coordinates from (fThetaDeg, fPhiDeg)
-    //
-    // Standard spherical convention:
-    //   theta: zenith from +Z, phi: azimuth from +X toward +Y.
-    //
-    G4double theta = fThetaDeg * deg;
-    G4double phi   = fPhiDeg   * deg;
+    // 1) Get plane basis from DetectorConstruction
+    G4ThreeVector ex_plane(1., 0., 0.);
+    G4ThreeVector ey_plane(0., 1., 0.);
+    G4ThreeVector ez_plane(0., 0., 1.);
 
-    G4double sTh = std::sin(theta);
-    G4double cTh = std::cos(theta);
-    G4double cPh = std::cos(phi);
-    G4double sPh = std::sin(phi);
+    auto* runManager = G4RunManager::GetRunManager();
+    const auto* det =
+        dynamic_cast<const DetectorConstruction*>(runManager->GetUserDetectorConstruction());
 
-    // Axis direction at the origin (WORLD frame)
-    G4ThreeVector axisWorld(sTh * cPh,   // x
-                            sTh * sPh,   // y
-                            cTh);        // z
-
-    if (axisWorld.mag2() == 0.) {
-        axisWorld = G4ThreeVector(0., 0., -1.);
+    if (det) {
+        det->GetPlaneBasis(ex_plane, ey_plane, ez_plane);
     }
-    axisWorld = axisWorld.unit();
+
+    // Plane normal in WORLD coordinates is ez_plane
+    G4ThreeVector axisWorld = ez_plane.unit();
 
     // 2) Sample direction inside cone around this axis
     G4ThreeVector direction = SampleDirectionInCone(axisWorld);
 
-    // 3) Pick a hit point on the Z=0 plane within +/-fHitPlaneHalfSize
-    //    in X and Y. A zero or negative half-size defaults to the origin.
-    G4double dx = 0.0;
-    G4double dy = 0.0;
-    if (fHitPlaneHalfSize > 0.0) {
-        auto symUniform = [this]() {
-            return 2.0 * G4UniformRand() - 1.0; // in [-1, 1]
-        };
-        dx = symUniform() * fHitPlaneHalfSize;
-        dy = symUniform() * fHitPlaneHalfSize;
+    // 3) Sample a random offset in the plane:
+    //    disX, disY uniform in [-fPlaneHalfXY, +fPlaneHalfXY]
+    G4double disX = 0.0;
+    G4double disY = 0.0;
+
+    if (fPlaneHalfXY > 0.0) {
+        disX = (2.0 * G4UniformRand() - 1.0) * fPlaneHalfXY;
+        disY = (2.0 * G4UniformRand() - 1.0) * fPlaneHalfXY;
     }
 
-    G4ThreeVector hitPoint(dx, dy, 0.0);
+    // Offset vector in WORLD coordinates
+    G4ThreeVector offset = disX * ex_plane + disY * ey_plane;
 
-    // 4) Place source at distance fSourceRadius BACK along this direction
-    //    so that the ray passes exactly through the hit point:
+    // 4) Place source at distance fSourceRadius BACK along 'direction',
+    //    then add the offset in the plane:
     //
-    //    ray: x(t) = x0 + t * direction
-    //    require x(t0) = hitPoint => x0 = hitPoint - t0 * direction
-    //    choose t0 = fSourceRadius
+    //    ray: x(t) = offset - fSourceRadius*direction + t*direction
+    //    at t = fSourceRadius, x = offset  (point in the plane)
     //
-    G4ThreeVector position = hitPoint - fSourceRadius * direction;
+    G4ThreeVector position = offset - fSourceRadius * direction;
 
     fGun->SetParticlePosition(position);
     fGun->SetParticleMomentumDirection(direction);

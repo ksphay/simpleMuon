@@ -1,3 +1,5 @@
+# macros/vis.mac
+
 # Verbosities
 /control/verbose 1
 /run/verbose 1
@@ -6,28 +8,30 @@
 # Init geometry + physics
 /run/initialize
 
-# Store trajectories
-/tracking/storeTrajectory 1
+# Store trajectories (optional)
+#/tracking/storeTrajectory 1
+/tracking/storeTrajectory 2
 
 # Open OpenGL viewer
-/vis/open OGL 800x800-0+0
+/vis/open OGL 1200x900-0+0
 
 # Build scene
 /vis/scene/create myScene
 /vis/scene/add/volume
-/vis/scene/add/axes 0 0 0 1 m
+/vis/scene/add/axes 0 0 0 500 m
 /vis/scene/add/trajectories smooth
+/vis/scene/add/hits
 /vis/sceneHandler/attach myScene
 
-# Correct background command:
+# Viewer setup
 /vis/viewer/set/background 1 1 1
 /vis/viewer/set/style surface
-/vis/viewer/set/target 0 0 0
+
+# ✅ Correct way to set the target in recent Geant4:
+#    use "targetPoint", and give units.
+/vis/viewer/set/targetPoint 0 0 0 m
+
 /vis/viewer/set/viewpointThetaPhi 70 40
 /vis/viewer/zoom 1.2
 /vis/viewer/update
 
-# Gun: particle only; energy/pos/dir are from C++ via CLI
-/gun/particle mu-
-
-/run/beamOn 100

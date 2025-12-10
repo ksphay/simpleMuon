@@ -1,8 +1,9 @@
+// PrimaryGeneratorAction.hh
 #ifndef PRIMARY_GENERATOR_ACTION_HH
 #define PRIMARY_GENERATOR_ACTION_HH
 
 #include "G4VUserPrimaryGeneratorAction.hh"
-#include "G4ThreeVector.hh"   // <-- include instead of forward-decl
+#include "G4ThreeVector.hh"
 #include "globals.hh"
 
 class G4ParticleGun;
@@ -16,22 +17,23 @@ public:
                            G4double phiDeg,
                            G4double sourceRadius,
                            G4double coneHalfAngleDeg,
-                           G4double hitPlaneHalfSize);
+                           G4double planeXY_m);
     ~PrimaryGeneratorAction() override;
 
     void GeneratePrimaries(G4Event* event) override;
 
 private:
+    // Sample direction in cone of half-angle fConeHalfAngleDeg around axisWorld
+    G4ThreeVector SampleDirectionInCone(const G4ThreeVector& axisWorld) const;
+
     G4ParticleGun* fGun;
 
     G4double fEnergyGeV;
-    G4double fThetaDeg;        // zenith in WORLD frame (deg)
-    G4double fPhiDeg;          // azimuth in WORLD frame (deg)
-    G4double fSourceRadius;    // distance from origin along ray
-    G4double fConeHalfAngleDeg;// cone half-angle (deg), 0 => pencil beam
-    G4double fHitPlaneHalfSize;// +/- half-size for hit point shift (length unit)
-
-    G4ThreeVector SampleDirectionInCone(const G4ThreeVector& axisWorld) const;
+    G4double fThetaDeg;
+    G4double fPhiDeg;
+    G4double fSourceRadius;       // in world units (mm)
+    G4double fConeHalfAngleDeg;   // cone half-angle in degrees
+    G4double fPlaneHalfXY;        // half-length of offset square on plane (world units)
 };
 
 #endif
