@@ -85,8 +85,16 @@ int main(int argc, char** argv)
         else if ((arg == "--cone" || arg == "-cone") && (i + 1) < argc) {
             coneHalfAngleDeg = std::atof(argv[++i]);
         }
-        else if ((arg == "--hit" || arg == "-hit") && (i + 1) < argc) {
-            hitPlaneHalfSize_m = std::atof(argv[++i]);
+        else if (arg.rfind("--hit=", 0) == 0) {
+            hitPlaneHalfSize_m = std::atof(arg.substr(6).c_str());
+        }
+        else if (arg == "--hit" || arg == "-hit") {
+            if ((i + 1) < argc) {
+                hitPlaneHalfSize_m = std::atof(argv[++i]);
+            } else {
+                G4cout << "[main] WARNING: --hit expects a half-size in meters;"
+                       << " using 0." << G4endl;
+            }
         }
         else if ((arg == "-m" || arg == "--macro") && (i + 1) < argc) {
             macroFile = argv[++i];
