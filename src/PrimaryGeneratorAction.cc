@@ -14,14 +14,16 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4double energyGeV,
                                                G4double thetaDeg,
                                                G4double phiDeg,
                                                G4double sourceRadius,
-                                               G4double coneHalfAngleDeg)
+                                               G4double coneHalfAngleDeg,
+                                               G4double hitPlaneHalfSize)
 : G4VUserPrimaryGeneratorAction(),
   fGun(nullptr),
   fEnergyGeV(energyGeV),
   fThetaDeg(thetaDeg),
   fPhiDeg(phiDeg),
   fSourceRadius(sourceRadius),
-  fConeHalfAngleDeg(coneHalfAngleDeg)
+  fConeHalfAngleDeg(coneHalfAngleDeg),
+  fHitPlaneHalfSize(hitPlaneHalfSize)
 {
     // One-particle gun
     fGun = new G4ParticleGun(1);
@@ -36,7 +38,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4double energyGeV,
            << "theta = " << fThetaDeg << " deg, "
            << "phi = "   << fPhiDeg   << " deg, "
            << "source radius = " << fSourceRadius / m << " m, "
-           << "cone half-angle = " << fConeHalfAngleDeg << " deg."
+           << "cone half-angle = " << fConeHalfAngleDeg << " deg, "
+           << "hit plane half-size = " << fHitPlaneHalfSize / m << " m."
            << G4endl;
     // Set default energy; direction/position per-event
     fGun->SetParticleEnergy(fEnergyGeV * GeV);
@@ -138,14 +141,40 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
     // 2) Sample direction inside cone around this axis
     G4ThreeVector direction = SampleDirectionInCone(axisWorld);
 
-    // 3) Place source at distance fSourceRadius BACK along this direction
-    //    so that the ray passes exactly through the origin:
+    // 3) Pick a hit point in the LOCAL plane square (centered at origin)
+    //    then rotate into world coordinates to match the actual plane
+    //    orientation. The plane normal uses the same (theta, phi) pair
+    //    as the cone axis, so ez is axisWorld and {ex, ey} span the
+    //    detector plane.
+    G4double dx = 0.0;
+    G4double dy = 0.0;
+    if (fHitPlaneHalfSize > 0.0) {
+        auto symUniform = [this]() {
+            return 2.0 * G4UniformRand() - 1.0; // in [-1, 1]
+        };
+        dx = symUniform() * fHitPlaneHalfSize;
+        dy = symUniform() * fHitPlaneHalfSize;
+    }
+
+    G4ThreeVector ez = axisWorld;
+    G4ThreeVector helper(0., 0., 1.);
+    if (std::fabs(ez.dot(helper)) > 0.9) {
+        helper = G4ThreeVector(1., 0., 0.);
+    }
+
+    G4ThreeVector ex = helper.cross(ez).unit();
+    G4ThreeVector ey = ez.cross(ex).unit();
+
+    G4ThreeVector hitPoint = dx * ex + dy * ey;
+
+    // 4) Place source at distance fSourceRadius BACK along this direction
+    //    so that the ray passes exactly through the hit point:
     //
     //    ray: x(t) = x0 + t * direction
-    //    require x(t0) = 0 => x0 = -t0 * direction
+    //    require x(t0) = hitPoint => x0 = hitPoint - t0 * direction
     //    choose t0 = fSourceRadius
     //
-    G4ThreeVector position = -fSourceRadius * direction;
+    G4ThreeVector position = hitPoint - fSourceRadius * direction;
 
     fGun->SetParticlePosition(position);
     fGun->SetParticleMomentumDirection(direction);

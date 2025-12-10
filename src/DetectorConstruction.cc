@@ -89,24 +89,27 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
     G4double theta = fThetaDeg * deg;
     G4double phi   = fPhiDeg   * deg;
 
-    G4double cth = std::cos(-theta);
-    G4double sth = std::sin(-theta);
-    G4double cph = std::cos(-phi);
-    G4double sph = std::sin(-phi);
+    G4double cth = std::cos(theta);
+    G4double sth = std::sin(theta);
+    G4double cph = std::cos(phi);
+    G4double sph = std::sin(phi);
 
-    // Columns of R = Ry * Rz (world coords of local basis vectors):
+    // Plane normal points along the requested (theta, phi)
     //
-    // From symbolic multiplication:
-    //   ex' = ( cosφ cosθ,         sinφ,        -sinθ cosφ )
-    //   ey' = ( -sinφ cosθ,        cosφ,        sinθ sinφ  )
-    //   ez' = ( sinθ,              0,           cosθ       )
+    //   n = (sinθ cosφ, sinθ sinφ, cosθ)
     //
-    // Note: Now ez' depends only on θ (no φ): φ becomes a twist
-    // around global Z, not the azimuth of the normal.
-    //
-    G4ThreeVector ex(cph * cth,  sph,       -sth * cph);
-    G4ThreeVector ey(-sph * cth, cph,        sth * sph);
-    G4ThreeVector ez(sth,        0.0,        cth);
+    G4ThreeVector ez(sth * cph, sth * sph, cth);
+    ez = ez.unit();
+
+    // Build an orthonormal basis in the plane: choose a helper vector
+    // that is not parallel to ez, then form the cross products.
+    G4ThreeVector helper(0., 0., 1.);
+    if (std::fabs(ez.dot(helper)) > 0.9) {
+        helper = G4ThreeVector(1., 0., 0.);
+    }
+
+    G4ThreeVector ex = helper.cross(ez).unit();
+    G4ThreeVector ey = ez.cross(ex).unit();
 
     auto* rot = new G4RotationMatrix(ex, ey, ez);
 
