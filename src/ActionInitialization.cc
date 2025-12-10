@@ -7,13 +7,15 @@ ActionInitialization::ActionInitialization(G4double energyGeV,
                                            G4double thetaDeg,
                                            G4double phiDeg,
                                            G4double sourceRadius,
-                                           G4double coneHalfAngleDeg)
+                                           G4double coneHalfAngleDeg,
+                                           G4double hitPlaneHalfSize)
 : G4VUserActionInitialization(),
   fEnergyGeV(energyGeV),
   fThetaDeg(thetaDeg),
   fPhiDeg(phiDeg),
   fSourceRadius(sourceRadius),
-  fConeHalfAngleDeg(coneHalfAngleDeg)
+  fConeHalfAngleDeg(coneHalfAngleDeg),
+  fHitPlaneHalfSize(hitPlaneHalfSize)
 {}
 
 void ActionInitialization::BuildForMaster() const
@@ -29,7 +31,8 @@ void ActionInitialization::Build() const
         fThetaDeg,
         fPhiDeg,
         fSourceRadius,
-        fConeHalfAngleDeg
+        fConeHalfAngleDeg,
+        fHitPlaneHalfSize
     ));
 
     // RunAction for analysis

@@ -41,6 +41,7 @@ int main(int argc, char** argv)
     G4double thetaDeg = 180.0;  // zenith
     G4double phiDeg   = 0.0;    // azimuth
     G4double r_m      = -1.0;   // radius (m); <0 => auto
+    G4double hitPlaneHalfSize_m = 0.0; // half-size (m) for hit point shift in +/-X,Y
 
     // NEW: cone half-angle (deg), 0 => pencil beam
     G4double coneHalfAngleDeg = 0.0;
@@ -83,6 +84,9 @@ int main(int argc, char** argv)
         }
         else if ((arg == "--cone" || arg == "-cone") && (i + 1) < argc) {
             coneHalfAngleDeg = std::atof(argv[++i]);
+        }
+        else if ((arg == "--hit" || arg == "-hit") && (i + 1) < argc) {
+            hitPlaneHalfSize_m = std::atof(argv[++i]);
         }
         else if ((arg == "-m" || arg == "--macro") && (i + 1) < argc) {
             macroFile = argv[++i];
@@ -173,6 +177,7 @@ int main(int argc, char** argv)
     G4cout << "[main] Source: r=" << r_m << " m, "
            << "theta=" << thetaDeg << " deg, phi=" << phiDeg << " deg" << G4endl;
     G4cout << "[main] Cone half-angle (deg): " << coneHalfAngleDeg << G4endl;
+    G4cout << "[main] Hit plane half-size (m): " << hitPlaneHalfSize_m << G4endl;
 
     // ----------------------------------------
     // Interactive vs batch
@@ -207,7 +212,8 @@ int main(int argc, char** argv)
                                  thetaDeg,
                                  phiDeg,
                                  rSource,
-                                 coneHalfAngleDeg)
+                                 coneHalfAngleDeg,
+                                 hitPlaneHalfSize_m * m)
     );
 
     // Visualization manager
