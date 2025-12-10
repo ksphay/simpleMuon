@@ -141,8 +141,22 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
         det->GetPlaneBasis(ex_plane, ey_plane, ez_plane);
     }
 
-    // Plane normal in WORLD coordinates is ez_plane
-    G4ThreeVector axisWorld = ez_plane.unit();
+    // Beam axis in WORLD coordinates from (theta, phi)
+    G4double theta = fThetaDeg * deg;
+    G4double phi   = fPhiDeg * deg;
+
+    G4double sTh = std::sin(theta);
+    G4double cTh = std::cos(theta);
+    G4double cPh = std::cos(phi);
+    G4double sPh = std::sin(phi);
+
+    // Standard spherical coordinates around world +Z
+    G4ThreeVector axisWorld(sTh * cPh, sTh * sPh, cTh);
+    if (axisWorld.mag2() == 0.) {
+        axisWorld = ez_plane.unit(); // fallback to plane normal
+    } else {
+        axisWorld = axisWorld.unit();
+    }
 
     // 2) Sample direction inside cone around this axis
     G4ThreeVector direction = SampleDirectionInCone(axisWorld);

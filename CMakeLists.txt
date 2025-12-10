@@ -13,6 +13,7 @@ set(SOURCES
         src/PrimaryGeneratorAction.cc
         src/ActionInitialization.cc
         src/RunAction.cc
+        src/SteppingAction.cc
         src/PlaneSD.cc
 )
 

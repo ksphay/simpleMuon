@@ -61,6 +61,12 @@ int main(int argc, char** argv)
     G4double terrainPhiDeg    = 0.0;   // rotation of DEM (x,y) around +Z
     G4double rockDensity_g_cm3 = 2.65; // default rock density
 
+    // Output
+    G4String outputFileName = "planeHits";
+
+    // Threads (MT only)
+    G4int nThreads = 4;
+
     // ----------------------------------------
     // Parse arguments
     // ----------------------------------------
@@ -139,6 +145,14 @@ int main(int argc, char** argv)
         else if ((arg == "-m" || arg == "--macro") && (i + 1) < argc) {
             macroFile = argv[++i];
         }
+        // Output file name (no extension)
+        else if ((arg == "-output" || arg == "--output") && (i + 1) < argc) {
+            outputFileName = argv[++i];
+        }
+        // Number of threads (MT builds)
+        else if ((arg == "-t" || arg == "--threads") && (i + 1) < argc) {
+            nThreads = std::atoi(argv[++i]);
+        }
         // Positional argument: try macro (.mac) or energy
         else if (arg[0] != '-') {
             if (macroFile.empty() &&
@@ -161,6 +175,13 @@ int main(int argc, char** argv)
             G4cout << "[main] WARNING: unknown or incomplete argument: "
                    << arg << G4endl;
         }
+    }
+
+    // Validate thread count (MT only)
+    if (nThreads < 1) {
+        G4cout << "[main] WARNING: requested thread count " << nThreads
+               << " is invalid; using 1." << G4endl;
+        nThreads = 1;
     }
 
     // Clamp energy
@@ -233,6 +254,7 @@ int main(int argc, char** argv)
            << " (half-length = " << hitHalfXY / m << " m)" << G4endl;
     G4cout << "[main] Detection plane full side (m): " << detXY_m
            << " (0 => auto 20% of world)" << G4endl;
+    G4cout << "[main] Output file name (without extension): " << outputFileName << G4endl;
 
     if (!demPath.empty()) {
         G4cout << "[main] DEM path: " << demPath << G4endl;
@@ -260,7 +282,7 @@ int main(int argc, char** argv)
     // ----------------------------------------
 #ifdef G4MULTITHREADED
     auto* runManager = new G4MTRunManager();
-    runManager->SetNumberOfThreads(4);  // tune as you like
+    runManager->SetNumberOfThreads(nThreads);
 #else
     auto* runManager = new G4RunManager();
 #endif
@@ -290,7 +312,8 @@ int main(int argc, char** argv)
                                  phiDeg,
                                  rSource,
                                  coneHalfAngleDeg,
-                                 planeXY_m)
+                                 planeXY_m,
+                                 outputFileName)
     );
 
     // Visualization manager
