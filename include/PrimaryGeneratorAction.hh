@@ -15,7 +15,8 @@ public:
                            G4double thetaDeg,
                            G4double phiDeg,
                            G4double sourceRadius,
-                           G4double coneHalfAngleDeg);
+                           G4double coneHalfAngleDeg,
+                           G4double hitPlaneHalfSize);
     ~PrimaryGeneratorAction() override;
 
     void GeneratePrimaries(G4Event* event) override;
@@ -28,6 +29,7 @@ private:
     G4double fPhiDeg;          // azimuth in WORLD frame (deg)
     G4double fSourceRadius;    // distance from origin along ray
     G4double fConeHalfAngleDeg;// cone half-angle (deg), 0 => pencil beam
+    G4double fHitPlaneHalfSize;// +/- half-size for hit point shift (length unit)
 
     G4ThreeVector SampleDirectionInCone(const G4ThreeVector& axisWorld) const;
 };
