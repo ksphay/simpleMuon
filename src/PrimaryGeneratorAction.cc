@@ -142,16 +142,17 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
     }
 
     // Beam axis in WORLD coordinates from (theta, phi)
-    G4double theta = fThetaDeg * deg;
-    G4double phi   = fPhiDeg * deg;
+    G4double theta     = fThetaDeg * deg;
+    G4double phiOffset = (fPhiDeg + 90.0) * deg;
 
     G4double sTh = std::sin(theta);
     G4double cTh = std::cos(theta);
-    G4double cPh = std::cos(phi);
-    G4double sPh = std::sin(phi);
+    G4double cPh = std::cos(phiOffset);
+    G4double sPh = std::sin(phiOffset);
 
-    // Standard spherical coordinates around world +Z
-    G4ThreeVector axisWorld(sTh * cPh, sTh * sPh, cTh);
+    // Standard spherical coordinates around world +Z but flipped so theta=0
+    // corresponds to pointing straight down toward -Z (sky -> ground)
+    G4ThreeVector axisWorld(sTh * cPh, sTh * sPh, -cTh);
     if (axisWorld.mag2() == 0.) {
         axisWorld = ez_plane.unit(); // fallback to plane normal
     } else {

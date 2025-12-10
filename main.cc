@@ -38,7 +38,9 @@ int main(int argc, char** argv)
     G4double zm_m = -1.0;
     G4double zp_m =  1.0;
 
-    // Source spherical params (deg, m) for the central axis
+    // Source spherical params (deg, m) for the central axis. Phi is interpreted
+    // with a +90 deg offset in the primary generator so that phi=0 corresponds
+    // to a beam along +Y by default.
     G4double thetaDeg = 180.0;  // zenith
     G4double phiDeg   = 0.0;    // azimuth (for beam axis if used)
     G4double r_m      = -1.0;   // radius (m); <0 => auto
@@ -248,7 +250,8 @@ int main(int argc, char** argv)
     G4cout << "[main] World half sizes (m): "
            << "X=" << halfX_m << " Y=" << halfY_m << " Z=" << halfZ_m << G4endl;
     G4cout << "[main] Source: r=" << r_m << " m, "
-           << "theta=" << thetaDeg << " deg, phi=" << phiDeg << " deg" << G4endl;
+           << "theta=" << thetaDeg << " deg, phi=" << phiDeg
+           << " deg (applied +90 deg offset in generator)" << G4endl;
     G4cout << "[main] Cone half-angle (deg): " << coneHalfAngleDeg << G4endl;
     G4cout << "[main] Plane offset full length (m): " << planeXY_m
            << " (half-length = " << hitHalfXY / m << " m)" << G4endl;
