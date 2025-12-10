@@ -5,6 +5,8 @@
 #include "G4VUserActionInitialization.hh"
 #include "globals.hh"
 
+class SteppingAction;
+
 class ActionInitialization : public G4VUserActionInitialization
 {
 public:

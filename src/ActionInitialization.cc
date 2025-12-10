@@ -2,6 +2,7 @@
 #include "ActionInitialization.hh"
 #include "PrimaryGeneratorAction.hh"
 #include "RunAction.hh"
+#include "SteppingAction.hh"
 
 ActionInitialization::ActionInitialization(G4double energyGeV,
                                            G4double thetaDeg,
@@ -30,6 +31,9 @@ void ActionInitialization::Build() const
 
     auto* runAction = new RunAction();
     SetUserAction(runAction);
+
+    auto* steppingAction = new SteppingAction();
+    SetUserAction(steppingAction);
 }
 
 void ActionInitialization::BuildForMaster() const
