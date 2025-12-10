@@ -150,8 +150,9 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
     G4double cPh = std::cos(phiOffset);
     G4double sPh = std::sin(phiOffset);
 
-    // Standard spherical coordinates around world +Z
-    G4ThreeVector axisWorld(sTh * cPh, sTh * sPh, cTh);
+    // Standard spherical coordinates around world +Z but flipped so theta=0
+    // corresponds to pointing straight down toward -Z (sky -> ground)
+    G4ThreeVector axisWorld(sTh * cPh, sTh * sPh, -cTh);
     if (axisWorld.mag2() == 0.) {
         axisWorld = ez_plane.unit(); // fallback to plane normal
     } else {
