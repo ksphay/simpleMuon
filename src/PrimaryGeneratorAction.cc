@@ -141,15 +141,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
     // 2) Sample direction inside cone around this axis
     G4ThreeVector direction = SampleDirectionInCone(axisWorld);
 
-    // 3) Pick a hit point in the LOCAL plane square (centered at origin)
-    //    then rotate into world coordinates to match the actual plane
-    //    orientation.
-    //
-    //    DetectorConstruction builds the plane rotation as:
-    //      R = Ry(theta) * Rz(phi) with NEGATED angles.
-    //    The columns (ex, ey, ez) are the world directions of the
-    //    local axes, so we reuse the same basis here to map the
-    //    sampled local offsets into world coordinates.
+    // 3) Pick a hit point on the Z=0 plane within +/-fHitPlaneHalfSize
+    //    in X and Y. A zero or negative half-size defaults to the origin.
     G4double dx = 0.0;
     G4double dy = 0.0;
     if (fHitPlaneHalfSize > 0.0) {
@@ -160,18 +153,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
         dy = symUniform() * fHitPlaneHalfSize;
     }
 
-    G4double thetaP = fThetaDeg * deg;
-    G4double phiP   = fPhiDeg   * deg;
-
-    G4double cth = std::cos(-thetaP);
-    G4double sth = std::sin(-thetaP);
-    G4double cph = std::cos(-phiP);
-    G4double sph = std::sin(-phiP);
-
-    G4ThreeVector ex(cph * cth,  sph,       -sth * cph);
-    G4ThreeVector ey(-sph * cth, cph,        sth * sph);
-
-    G4ThreeVector hitPoint = dx * ex + dy * ey;
+    G4ThreeVector hitPoint(dx, dy, 0.0);
 
     // 4) Place source at distance fSourceRadius BACK along this direction
     //    so that the ray passes exactly through the hit point:
