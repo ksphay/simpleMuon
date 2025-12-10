@@ -9,14 +9,16 @@ ActionInitialization::ActionInitialization(G4double energyGeV,
                                            G4double phiDeg,
                                            G4double sourceRadius,
                                            G4double coneHalfAngleDeg,
-                                           G4double planeXY_m)
+                                           G4double planeXY_m,
+                                           const G4String& outputFileName)
 : G4VUserActionInitialization(),
   fEnergyGeV(energyGeV),
   fThetaDeg(thetaDeg),
   fPhiDeg(phiDeg),
   fSourceRadius(sourceRadius),
   fConeHalfAngleDeg(coneHalfAngleDeg),
-  fPlaneXY_m(planeXY_m)
+  fPlaneXY_m(planeXY_m),
+  fOutputFileName(outputFileName)
 {}
 
 void ActionInitialization::Build() const
@@ -29,7 +31,7 @@ void ActionInitialization::Build() const
                                             fPlaneXY_m);
     SetUserAction(prim);
 
-    auto* runAction = new RunAction();
+    auto* runAction = new RunAction(fOutputFileName);
     SetUserAction(runAction);
 
     auto* steppingAction = new SteppingAction();
@@ -38,6 +40,6 @@ void ActionInitialization::Build() const
 
 void ActionInitialization::BuildForMaster() const
 {
-    auto* runAction = new RunAction();
+    auto* runAction = new RunAction(fOutputFileName);
     SetUserAction(runAction);
 }

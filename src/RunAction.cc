@@ -2,14 +2,15 @@
 
 #include "G4Run.hh"
 #include "G4AnalysisManager.hh"
+#include "G4String.hh"
 
-RunAction::RunAction()
+RunAction::RunAction(const G4String& outputFileName)
 : G4UserRunAction()
 {
     auto* analysisManager = G4AnalysisManager::Instance();
 
     analysisManager->SetDefaultFileType("root");
-    analysisManager->SetFileName("planeHits");
+    analysisManager->SetFileName(outputFileName);
     analysisManager->SetVerboseLevel(1);
     analysisManager->SetNtupleMerging(true);  // MT friendly
 

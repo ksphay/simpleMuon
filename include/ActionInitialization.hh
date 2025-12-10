@@ -15,7 +15,8 @@ public:
                          G4double phiDeg,
                          G4double sourceRadius,
                          G4double coneHalfAngleDeg,
-                         G4double planeXY_m);
+                         G4double planeXY_m,
+                         const G4String& outputFileName);
     ~ActionInitialization() override = default;
 
     void Build() const override;
@@ -28,6 +29,7 @@ private:
     G4double fSourceRadius;
     G4double fConeHalfAngleDeg;
     G4double fPlaneXY_m;   // full side length (m) of offset square on plane
+    G4String fOutputFileName;
 };
 
 #endif
