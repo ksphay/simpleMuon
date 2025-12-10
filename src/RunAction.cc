@@ -21,26 +21,26 @@ RunAction::RunAction(const G4String& outputFileName)
     analysisManager->CreateNtupleIColumn("trackID"); // 1
 
     // Positions (local to plane)
-    analysisManager->CreateNtupleDColumn("x_in");    // 2
-    analysisManager->CreateNtupleDColumn("y_in");    // 3
-    analysisManager->CreateNtupleDColumn("z_in");    // 4
+    analysisManager->CreateNtupleDColumn("x_init");     // 2
+    analysisManager->CreateNtupleDColumn("y_init");     // 3
+    analysisManager->CreateNtupleDColumn("z_init");     // 4
 
-    analysisManager->CreateNtupleDColumn("x_out");   // 5
-    analysisManager->CreateNtupleDColumn("y_out");   // 6
-    analysisManager->CreateNtupleDColumn("z_out");   // 7
+    analysisManager->CreateNtupleDColumn("x_plane");    // 5
+    analysisManager->CreateNtupleDColumn("y_plane");    // 6
+    analysisManager->CreateNtupleDColumn("z_plane");    // 7
 
     // Directions (local to plane)
-    analysisManager->CreateNtupleDColumn("dx_in");   // 8
-    analysisManager->CreateNtupleDColumn("dy_in");   // 9
-    analysisManager->CreateNtupleDColumn("dz_in");   // 10
+    analysisManager->CreateNtupleDColumn("dx_init");    // 8
+    analysisManager->CreateNtupleDColumn("dy_init");    // 9
+    analysisManager->CreateNtupleDColumn("dz_init");    // 10
 
-    analysisManager->CreateNtupleDColumn("dx_out");  // 11
-    analysisManager->CreateNtupleDColumn("dy_out");  // 12
-    analysisManager->CreateNtupleDColumn("dz_out");  // 13
+    analysisManager->CreateNtupleDColumn("dx_plane");   // 11
+    analysisManager->CreateNtupleDColumn("dy_plane");   // 12
+    analysisManager->CreateNtupleDColumn("dz_plane");   // 13
 
     // Energies (GeV)
-    analysisManager->CreateNtupleDColumn("E_in_GeV");   // 14
-    analysisManager->CreateNtupleDColumn("E_out_GeV");  // 15
+    analysisManager->CreateNtupleDColumn("E_init_GeV");   // 14
+    analysisManager->CreateNtupleDColumn("E_plane_GeV");  // 15
 
     // NEW: zenith angle at firing (world frame, degrees)
     analysisManager->CreateNtupleDColumn("zenith_world_deg"); // 16
