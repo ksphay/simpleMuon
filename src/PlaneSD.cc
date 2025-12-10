@@ -46,18 +46,20 @@ G4bool PlaneSD::ProcessHits(G4Step* step, G4TouchableHistory* /*history*/)
     G4ThreeVector dirOutWorld = post->GetMomentumDirection();
 
     // World coordinates at SOURCE (vertex)
-    G4ThreeVector vertexWorld = track->GetVertexPosition();
+    G4ThreeVector vertexWorld   = track->GetVertexPosition();
+    G4ThreeVector vertexDirWorld = track->GetVertexMomentumDirection();
 
     // Plane local frame via touchable
     G4TouchableHandle touchable = pre->GetTouchableHandle();
     const G4AffineTransform& topTransform = touchable->GetHistory()->GetTopTransform();
 
     // Transform positions/directions to plane-local coordinates
-    G4ThreeVector posInLocal   = topTransform.TransformPoint(posInWorld);
-    G4ThreeVector posOutLocal  = topTransform.TransformPoint(posOutWorld);
-    G4ThreeVector vertexLocal  = topTransform.TransformPoint(vertexWorld);
-    G4ThreeVector dirInLocal   = topTransform.TransformAxis(dirInWorld);
-    G4ThreeVector dirOutLocal  = topTransform.TransformAxis(dirOutWorld);
+    G4ThreeVector posInLocal    = topTransform.TransformPoint(posInWorld);
+    G4ThreeVector posOutLocal   = topTransform.TransformPoint(posOutWorld);
+    G4ThreeVector vertexLocal   = topTransform.TransformPoint(vertexWorld);
+    G4ThreeVector dirInLocal    = topTransform.TransformAxis(dirInWorld);
+    G4ThreeVector dirOutLocal   = topTransform.TransformAxis(dirOutWorld);
+    G4ThreeVector dirInitLocal  = topTransform.TransformAxis(vertexDirWorld);
 
     // ---- Compute intersection with plane z' = 0 in local coords ----
     //
@@ -69,25 +71,32 @@ G4bool PlaneSD::ProcessHits(G4Step* step, G4TouchableHistory* /*history*/)
     G4double z2 = posOutLocal.z();
 
     G4ThreeVector posPlaneLocal;
+    G4double      tPlane = 0.0;
 
     if (std::fabs(z2 - z1) < 1e-12) {
         // Degenerate: almost no thickness or step parallel to plane.
         // Just use entry position as best guess.
         posPlaneLocal = posInLocal;
     } else {
-        G4double t = -z1 / (z2 - z1);
+        tPlane = -z1 / (z2 - z1);
         // Clamp t to [0,1] just in case
-        if (t < 0.0) t = 0.0;
-        if (t > 1.0) t = 1.0;
-        posPlaneLocal = posInLocal + t * (posOutLocal - posInLocal);
+        if (tPlane < 0.0) tPlane = 0.0;
+        if (tPlane > 1.0) tPlane = 1.0;
+        posPlaneLocal = posInLocal + tPlane * (posOutLocal - posInLocal);
     }
 
-    // For "out" direction at the plane, take post-step local direction
-    G4ThreeVector dirPlaneLocal = dirOutLocal;
+    // Direction at plane center (linear blend between entry/exit)
+    G4ThreeVector dirPlaneLocal = dirInLocal + tPlane * (dirOutLocal - dirInLocal);
+    if (dirPlaneLocal.mag2() == 0.) {
+        dirPlaneLocal = dirOutLocal;
+    }
+    dirPlaneLocal = dirPlaneLocal.unit();
 
     // Energies in GeV
-    G4double E_in_GeV  = pre->GetKineticEnergy()  / GeV;
-    G4double E_out_GeV = post->GetKineticEnergy() / GeV;
+    G4double E_in_GeV    = pre->GetKineticEnergy()  / GeV;
+    G4double E_out_GeV   = post->GetKineticEnergy() / GeV;
+    G4double E_init_GeV  = track->GetVertexKineticEnergy() / GeV;
+    G4double E_plane_GeV = E_in_GeV + tPlane * (E_out_GeV - E_in_GeV);
 
     // Event / track IDs
     G4int eventID = -1;
@@ -124,19 +133,19 @@ G4bool PlaneSD::ProcessHits(G4Step* step, G4TouchableHistory* /*history*/)
     analysis->FillNtupleDColumn(6, posPlaneLocal.y());
     analysis->FillNtupleDColumn(7, posPlaneLocal.z());
 
-    // 8-10: direction at plane entry (local)
-    analysis->FillNtupleDColumn(8,  dirInLocal.x());
-    analysis->FillNtupleDColumn(9,  dirInLocal.y());
-    analysis->FillNtupleDColumn(10, dirInLocal.z());
+    // 8-10: initial direction at source (local)
+    analysis->FillNtupleDColumn(8,  dirInitLocal.x());
+    analysis->FillNtupleDColumn(9,  dirInitLocal.y());
+    analysis->FillNtupleDColumn(10, dirInitLocal.z());
 
-    // 11-13: direction at plane (after crossing) (local)
+    // 11-13: direction at plane center (local)
     analysis->FillNtupleDColumn(11, dirPlaneLocal.x());
     analysis->FillNtupleDColumn(12, dirPlaneLocal.y());
     analysis->FillNtupleDColumn(13, dirPlaneLocal.z());
 
     // 14-15: energies
-    analysis->FillNtupleDColumn(14, E_in_GeV);
-    analysis->FillNtupleDColumn(15, E_out_GeV);
+    analysis->FillNtupleDColumn(14, E_init_GeV);
+    analysis->FillNtupleDColumn(15, E_plane_GeV);
 
     // 16: zenith of the *initial* direction (world)
     analysis->FillNtupleDColumn(16, zenithDeg);

@@ -183,6 +183,11 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
     //
     G4ThreeVector position = offset - fSourceRadius * direction;
 
+    // Flip Y to convert from the simulation's convention (Z up) to the
+    // external coordinate system expected by the input angles.
+    position[1]  = -position[1];
+    direction[1] = -direction[1];
+
     fGun->SetParticlePosition(position);
     fGun->SetParticleMomentumDirection(direction);
     fGun->SetParticleEnergy(fEnergyGeV * GeV);
