@@ -1,6 +1,8 @@
 // ActionInitialization.cc
 #include "ActionInitialization.hh"
 #include "PrimaryGeneratorAction.hh"
+#include "RunAction.hh"
+#include "SteppingAction.hh"
 
 ActionInitialization::ActionInitialization(G4double energyGeV,
                                            G4double thetaDeg,
@@ -26,4 +28,16 @@ void ActionInitialization::Build() const
                                             fConeHalfAngleDeg,
                                             fPlaneXY_m);
     SetUserAction(prim);
+
+    auto* runAction = new RunAction();
+    SetUserAction(runAction);
+
+    auto* steppingAction = new SteppingAction();
+    SetUserAction(steppingAction);
+}
+
+void ActionInitialization::BuildForMaster() const
+{
+    auto* runAction = new RunAction();
+    SetUserAction(runAction);
 }

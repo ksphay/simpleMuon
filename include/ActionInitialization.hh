@@ -5,6 +5,8 @@
 #include "G4VUserActionInitialization.hh"
 #include "globals.hh"
 
+class SteppingAction;
+
 class ActionInitialization : public G4VUserActionInitialization
 {
 public:
@@ -17,7 +19,7 @@ public:
     ~ActionInitialization() override = default;
 
     void Build() const override;
-    void BuildForMaster() const override {}  // nothing special for master
+    void BuildForMaster() const override;
 
 private:
     G4double fEnergyGeV;
