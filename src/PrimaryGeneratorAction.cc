@@ -141,11 +141,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
     // 2) Sample direction inside cone around this axis
     G4ThreeVector direction = SampleDirectionInCone(axisWorld);
 
-    // 3) Pick a hit point in the LOCAL plane square (centered at origin)
-    //    then rotate into world coordinates to match the actual plane
-    //    orientation. The plane normal uses the same (theta, phi) pair
-    //    as the cone axis, so ez is axisWorld and {ex, ey} span the
-    //    detector plane.
+    // 3) Pick a hit point on the Z=0 plane within +/-fHitPlaneHalfSize
+    //    in X and Y. A zero or negative half-size defaults to the origin.
     G4double dx = 0.0;
     G4double dy = 0.0;
     if (fHitPlaneHalfSize > 0.0) {
@@ -156,16 +153,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
         dy = symUniform() * fHitPlaneHalfSize;
     }
 
-    G4ThreeVector ez = axisWorld;
-    G4ThreeVector helper(0., 0., 1.);
-    if (std::fabs(ez.dot(helper)) > 0.9) {
-        helper = G4ThreeVector(1., 0., 0.);
-    }
-
-    G4ThreeVector ex = helper.cross(ez).unit();
-    G4ThreeVector ey = ez.cross(ex).unit();
-
-    G4ThreeVector hitPoint = dx * ex + dy * ey;
+    G4ThreeVector hitPoint(dx, dy, 0.0);
 
     // 4) Place source at distance fSourceRadius BACK along this direction
     //    so that the ray passes exactly through the hit point:

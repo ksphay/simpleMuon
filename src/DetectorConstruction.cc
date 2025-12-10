@@ -77,12 +77,15 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
            << fThetaDeg << " deg, " << fPhiDeg << " deg)" << G4endl;
 
     // =========================================================
-    // Build rotation with REVERSED order:
+    // Build rotation with order:
     //
-    //   R = Ry(theta) * Rz(phi)
+    //   R = Rx(theta) * Rz'(phi)
     //
-    // Active view: first rotate around global Z by φ,
-    // then around global Y by θ.
+    // Active view: first rotate around global X by the zenith
+    // angle θ, then rotate around the intermediate z' axis by
+    // the azimuth φ. This matches the requested convention of
+    // tilting the plane around X and then spinning it around its
+    // new normal.
     //
     // theta, phi in radians
     // =========================================================
@@ -94,22 +97,18 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
     G4double cph = std::cos(phi);
     G4double sph = std::sin(phi);
 
-    // Plane normal points along the requested (theta, phi)
+    // Columns of R = Rx(theta) * Rz'(phi): world coordinates of the
+    // local basis vectors after first tilting by θ around X and then
+    // spinning by φ around the new z' axis.
     //
-    //   n = (sinθ cosφ, sinθ sinφ, cosθ)
+    // From symbolic multiplication:
+    //   ex' = ( cosφ,          cosθ sinφ,   sinθ sinφ )
+    //   ey' = ( -sinφ,         cosθ cosφ,   sinθ cosφ )
+    //   ez' = ( 0,             -sinθ,       cosθ      )
     //
-    G4ThreeVector ez(sth * cph, sth * sph, cth);
-    ez = ez.unit();
-
-    // Build an orthonormal basis in the plane: choose a helper vector
-    // that is not parallel to ez, then form the cross products.
-    G4ThreeVector helper(0., 0., 1.);
-    if (std::fabs(ez.dot(helper)) > 0.9) {
-        helper = G4ThreeVector(1., 0., 0.);
-    }
-
-    G4ThreeVector ex = helper.cross(ez).unit();
-    G4ThreeVector ey = ez.cross(ex).unit();
+    G4ThreeVector ex(cph,        cth * sph,  sth * sph);
+    G4ThreeVector ey(-sph,       cth * cph,  sth * cph);
+    G4ThreeVector ez(0.0,        -sth,       cth);
 
     auto* rot = new G4RotationMatrix(ex, ey, ez);
 
