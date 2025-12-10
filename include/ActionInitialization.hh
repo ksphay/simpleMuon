@@ -11,7 +11,8 @@ public:
                          G4double thetaDeg,
                          G4double phiDeg,
                          G4double sourceRadius,
-                         G4double coneHalfAngleDeg);
+                         G4double coneHalfAngleDeg,
+                         G4double hitPlaneHalfSize);
     ~ActionInitialization() override = default;
 
     void BuildForMaster() const override;
@@ -23,6 +24,7 @@ private:
     G4double fPhiDeg;
     G4double fSourceRadius;
     G4double fConeHalfAngleDeg;
+    G4double fHitPlaneHalfSize;
 };
 
 #endif
